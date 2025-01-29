@@ -1,0 +1,15 @@
+{
+    "name": "View Text Nodes Annotations",
+    "id": "com.mahdava.view.text.nodes.annotations",
+    "api": "1.0.0",
+    "main": "code.js",
+    "ui": "ui.html",
+    "editorType": [
+        "figma",
+        "dev"
+    ],
+    "capabilities": [
+        "inspect"
+    ],
+    "enableProposedApi": true
+}

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Text Annotations Viewer</title>
+    <style>
+      :root {
+        --background-color: #ffffff;
+        --text-color: #000000;
+        --header-background-color: #178f51;
+        --header-text-color: #ffffff;
+        --row-hover-color: #bff7da;
+        --button-background-color: #e0e0e0;
+        --button-text-color: #000000;
+        --button-hover-color: #178f51;
+        --button-hover-text-color: #ffffff;
+        --border-color: #ddd;
+      }
+
+      .dark-theme {
+        --background-color: #1e1e1e;
+        --text-color: #ffffff;
+        --header-background-color: #178f51;
+        --header-text-color: #ffffff;
+        --row-hover-color: #444444;
+        --button-background-color: #555555;
+        --button-text-color: #ffffff;
+        --button-hover-color: #178f51;
+        --button-hover-text-color: #ffffff;
+        --border-color: #555555;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        margin: 12px;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s;
+        padding-bottom: 50px; /* Add padding to avoid content being overlapped by the footer */
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        color: var(--text-color);
+      }
+
+      #message {
+        margin-bottom: 20px;
+        color: var(--text-color);
+      }
+
+      #themeToggle {
+        margin-bottom: 20px;
+        padding: 10px;
+        cursor: pointer;
+        background-color: var(--button-background-color);
+        color: var(--button-text-color);
+        border: none;
+        border-radius: 4px;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      #themeToggle:hover {
+        background-color: var(--button-hover-color);
+        color: var(--button-hover-text-color);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        table-layout: auto;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: top;
+        color: var(--text-color);
+      }
+
+      th {
+        background-color: var(--header-background-color);
+        color: var(--header-text-color);
+        cursor: pointer;
+      }
+
+      tr:hover {
+        background-color: var(--row-hover-color);
+      }
+
+      th:first-child,
+      td:first-child {
+        white-space: nowrap;
+        width: 1%;
+      }
+
+      th:last-child,
+      td:last-child {
+        width: auto;
+      }
+
+      tr {
+        transition: background-color 0.3s;
+      }
+
+      footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: var(--background-color);
+        padding: 12px;
+        text-align: center;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      footer span {
+        color: var(--text-color);
+        font-size: 14px;
+      }
+
+      footer #themeToggle {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body class="light-theme">
+    <h2>Text Nodes Annotations</h2>
+    <div id="message">Select a node to view annotations.</div>
+    <table id="annotationsTable" style="display: none">
+      <thead>
+        <tr>
+          <th>Annotation</th>
+          <th>Text</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- rows -->
+      </tbody>
+    </table>
+
+    <footer>
+      <span>&copy; 2025</span>
+      <button id="themeToggle">Switch to Dark Theme</button>
+    </footer>
+
+    <script>
+      const themeToggle = document.getElementById("themeToggle");
+      const body = document.body;
+
+      let isDarkTheme = false;
+
+      window.onload = () => {
+        const savedTheme = localStorage.getItem("annotationPluginTheme");
+        if (savedTheme === "dark") {
+          isDarkTheme = true;
+          body.classList.remove("light-theme");
+          body.classList.add("dark-theme");
+          themeToggle.textContent = "Switch to Light Theme";
+        }
+      };
+
+      themeToggle.addEventListener("click", () => {
+        isDarkTheme = !isDarkTheme;
+        if (isDarkTheme) {
+          body.classList.remove("light-theme");
+          body.classList.add("dark-theme");
+          themeToggle.textContent = "Switch to Light Theme";
+          localStorage.setItem("annotationPluginTheme", "dark");
+        } else {
+          body.classList.remove("dark-theme");
+          body.classList.add("light-theme");
+          themeToggle.textContent = "Switch to Dark Theme";
+          localStorage.setItem("annotationPluginTheme", "light");
+        }
+      });
+
+      onmessage = (event) => {
+        const { type, message, data, nodeName } = event.data.pluginMessage;
+
+        const messageDiv = document.getElementById("message");
+        const table = document.getElementById("annotationsTable");
+        const tableBody = document.getElementById("tableBody");
+
+        tableBody.innerHTML = "";
+
+        messageDiv.textContent = message;
+
+        if (type === "ANNOTATIONS_FOUND") {
+          table.style.display = "table";
+
+          if (data.length === 0) {
+            messageDiv.textContent =
+              "No annotations found. Select a frame or an element that contains text nodes.";
+            table.style.display = "none";
+            return;
+          }
+
+          data.forEach((item) => {
+            const row = document.createElement("tr");
+
+            const annotationCell = document.createElement("td");
+            annotationCell.textContent =
+              item.annotation || "No Annotation Text";
+            row.appendChild(annotationCell);
+
+            const textCell = document.createElement("td");
+            textCell.textContent = item.text || "No Text";
+            row.appendChild(textCell);
+
+            tableBody.appendChild(row);
+          });
+        } else {
+          table.style.display = "none";
+        }
+      };
+    </script>
+  </body>
+</html>
