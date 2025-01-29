@@ -1,7 +1,7 @@
 //console.log("Plugin starting: Text Annotations Viewer");
 
 // Show the UI with specified dimensions
-figma.showUI(__html__, { width: 600, height: 500 });
+figma.showUI(__html__, { width: 400, height: 600 });
 //console.log("UI is displayed.");
 
 // Initial update on plugin launch
