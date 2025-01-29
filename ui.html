@@ -36,7 +36,7 @@
         background-color: var(--background-color);
         color: var(--text-color);
         transition: background-color 0.3s, color 0.3s;
-        padding-bottom: 50px; /* Add padding to avoid content being overlapped by the footer */
+        padding-bottom: 50px;
       }
 
       h2 {
@@ -49,8 +49,9 @@
         color: var(--text-color);
       }
 
-      #themeToggle {
-        margin-bottom: 20px;
+      #themeToggle,
+      #copyButton {
+        margin: 0;
         padding: 10px;
         cursor: pointer;
         background-color: var(--button-background-color);
@@ -58,11 +59,26 @@
         border: none;
         border-radius: 4px;
         transition: background-color 0.3s, color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
-      #themeToggle:hover {
+      #themeToggle:hover,
+      #copyButton:hover {
         background-color: var(--button-hover-color);
         color: var(--button-hover-text-color);
+      }
+
+      #copyButton {
+        margin-right: 10px;
+      }
+
+      /* Icon Styling */
+      .theme-icon {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
       }
 
       table {
@@ -125,14 +141,33 @@
         font-size: 14px;
       }
 
-      footer #themeToggle {
-        margin: 0;
+      #toast {
+        visibility: hidden;
+        min-width: 200px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 4px;
+        padding: 8px;
+        position: fixed;
+        z-index: 1;
+        left: 50%;
+        bottom: 30px;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.5s;
+      }
+
+      #toast.show {
+        visibility: visible;
+        opacity: 1;
       }
     </style>
   </head>
   <body class="light-theme">
     <h2>Text Annotations</h2>
     <div id="message">Select a node to view annotations.</div>
+
     <table id="annotationsTable" style="display: none">
       <thead>
         <tr>
@@ -145,41 +180,123 @@
       </tbody>
     </table>
 
+    <div id="toast"></div>
+
     <footer>
-      <span>&copy; 2025</span>
-      <button id="themeToggle">Switch to Dark Theme</button>
+      <button id="themeToggle" aria-label="Switch to Dark Theme">
+        <!-- Sun Icon (Visible in Light Theme) -->
+        <svg
+          id="sunIcon"
+          class="theme-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 4.5V2M12 22v-2.5M4.5 12H2M22 12h-2.5M5.64 5.64l-1.77-1.77M19.13 19.13l-1.77-1.77M5.64 18.36l-1.77 1.77M19.13 4.87l-1.77 1.77M12 7a5 5 0 100 10 5 5 0 000-10z"
+          ></path>
+        </svg>
+        <!-- Moon Icon (Visible in Dark Theme) -->
+        <svg
+          id="moonIcon"
+          class="theme-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          style="display: none"
+        >
+          <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"></path>
+        </svg>
+      </button>
+      <button id="copyButton" style="display: none">Copy Table</button>
     </footer>
 
     <script>
       const themeToggle = document.getElementById("themeToggle");
+      const sunIcon = document.getElementById("sunIcon");
+      const moonIcon = document.getElementById("moonIcon");
+      const copyButton = document.getElementById("copyButton");
       const body = document.body;
 
       let isDarkTheme = false;
-
-      window.onload = () => {
-        const savedTheme = localStorage.getItem("annotationPluginTheme");
-        if (savedTheme === "dark") {
-          isDarkTheme = true;
-          body.classList.remove("light-theme");
-          body.classList.add("dark-theme");
-          themeToggle.textContent = "Switch to Light Theme";
-        }
-      };
 
       themeToggle.addEventListener("click", () => {
         isDarkTheme = !isDarkTheme;
         if (isDarkTheme) {
           body.classList.remove("light-theme");
           body.classList.add("dark-theme");
-          themeToggle.textContent = "Switch to Light Theme";
-          localStorage.setItem("annotationPluginTheme", "dark");
+          sunIcon.style.display = "none";
+          moonIcon.style.display = "inline";
+          themeToggle.setAttribute("aria-label", "Switch to Light Theme");
         } else {
           body.classList.remove("dark-theme");
           body.classList.add("light-theme");
-          themeToggle.textContent = "Switch to Dark Theme";
-          localStorage.setItem("annotationPluginTheme", "light");
+          sunIcon.style.display = "inline";
+          moonIcon.style.display = "none";
+          themeToggle.setAttribute("aria-label", "Switch to Dark Theme");
         }
       });
+
+      const showToast = (message) => {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "show";
+        setTimeout(() => {
+          toast.className = toast.className.replace("show", "");
+        }, 3000);
+      };
+
+      const copyTable = () => {
+        const table = document.getElementById("annotationsTable");
+        const rows = Array.from(table.querySelectorAll("tr")).splice(1);
+        const text = rows
+          .map((row) => {
+            const cells = Array.from(row.querySelectorAll("th, td"));
+            return cells.map((cell) => cell.textContent.trim()).join("\t");
+          })
+          .join("\n");
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard
+            .writeText(text)
+            .then(() => {
+              showToast("Table copied to clipboard!");
+            })
+            .catch((err) => {
+              console.error("Failed to copy using Clipboard API: ", err);
+              fallbackCopyText(text);
+            });
+        } else {
+          fallbackCopyText(text);
+        }
+      };
+
+      const fallbackCopyText = (text) => {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.top = "0";
+        textarea.style.left = "0";
+        textarea.style.position = "fixed";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            showToast("Table copied to clipboard!");
+          } else {
+            showToast("Failed to copy table.");
+          }
+        } catch (err) {
+          console.error("Fallback: Oops, unable to copy", err);
+          showToast("Failed to copy table.");
+        }
+
+        document.body.removeChild(textarea);
+      };
+
+      copyButton.addEventListener("click", copyTable);
 
       onmessage = (event) => {
         const { type, message, data, nodeName } = event.data.pluginMessage;
@@ -194,11 +311,13 @@
 
         if (type === "ANNOTATIONS_FOUND") {
           table.style.display = "table";
+          copyButton.style.display = "inline-block";
 
           if (data.length === 0) {
             messageDiv.textContent =
               "No annotations found. Select a frame or an element that contains text nodes.";
             table.style.display = "none";
+            copyButton.style.display = "none";
             return;
           }
 
@@ -218,6 +337,7 @@
           });
         } else {
           table.style.display = "none";
+          copyButton.style.display = "none";
         }
       };
     </script>
